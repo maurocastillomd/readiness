@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<style>
+  @font-face { font-family:'Fraunces'; src:url('fonts/Fraunces-Variable.woff2') format('woff2'); font-weight:100 900; }
+  @font-face { font-family:'Hanken Grotesk'; src:url('fonts/HankenGrotesk-Variable.woff2') format('woff2'); font-weight:100 900; }
+  @font-face { font-family:'IBM Plex Mono'; src:url('fonts/IBMPlexMono-400.woff2') format('woff2'); font-weight:400; }
+  @font-face { font-family:'IBM Plex Mono'; src:url('fonts/IBMPlexMono-500.woff2') format('woff2'); font-weight:500; }
+
+  :root{
+    --bg:#FAFAF9; --surface:#F1F1F0; --card:#FFFFFF;
+    --ink:#0B0B0C; --ink-dim:#52525B; --ink-faint:#8A8A93;
+    --accent:#2039C4; --accent-wash:rgba(32,57,196,0.06);
+    --ok:#2F7D5B; --ok-wash:rgba(47,125,91,0.10);
+    --warn:#B0791F; --warn-wash:rgba(176,121,31,0.12);
+    --alert:#C0503F; --alert-wash:rgba(192,80,63,0.10);
+    --line:rgba(11,11,12,0.08); --line-soft:rgba(11,11,12,0.05);
+    --display:'Fraunces',serif; --sans:'Hanken Grotesk',sans-serif; --mono:'IBM Plex Mono',monospace;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{width:1920px;height:1080px;overflow:hidden;background:var(--bg);font-family:var(--sans);color:var(--ink);}
+  #stage{
+    width:1920px;height:1080px;position:relative;
+    background-image:radial-gradient(75% 55% at 50% -5%, rgba(32,57,196,0.05) 0%, transparent 55%);
+    display:flex;align-items:center;justify-content:center;gap:56px;padding:70px 80px;
+  }
+
+  /* ---------- panels ---------- */
+  .panel{width:840px;opacity:0;transform:translateY(26px);transition:opacity .5s cubic-bezier(.32,.72,0,1),transform .5s cubic-bezier(.32,.72,0,1);}
+  .panel.in{opacity:1;transform:none;}
+
+  .cap{font-family:var(--mono);font-size:15px;font-weight:500;letter-spacing:.24em;text-transform:uppercase;color:var(--accent);margin-bottom:16px;height:20px;}
+
+  /* ---------- terminal ---------- */
+  .term{background:#0B0B0C;border-radius:20px;overflow:hidden;box-shadow:0 40px 90px -30px rgba(11,11,12,.4);border:1px solid rgba(255,255,255,.06);}
+  .term-bar{display:flex;align-items:center;gap:9px;padding:16px 20px;background:#151517;border-bottom:1px solid rgba(255,255,255,.05);}
+  .dot{width:13px;height:13px;border-radius:50%;}
+  .dot.r{background:#ED6A5E;} .dot.y{background:#F4BF4F;} .dot.g{background:#61C554;}
+  .term-title{margin-left:12px;font-family:var(--mono);font-size:13px;color:#6b6b72;letter-spacing:.04em;}
+  .term-body{padding:26px 30px;font-family:var(--mono);font-size:19px;line-height:1.62;color:#E6E6E6;min-height:560px;}
+  .prompt{color:#61C554;} .path{color:#5B8DEF;} .cmd{color:#fff;}
+  .cursor{display:inline-block;width:10px;height:22px;background:#E6E6E6;margin-left:2px;vertical-align:-4px;animation:blink 1s steps(1) infinite;}
+  @keyframes blink{50%{opacity:0;}}
+  .out{display:block;white-space:pre-wrap;opacity:0;}
+  .out.show{opacity:1;}
+  .review{color:#F08C7C;} .monitor{color:#F4C77A;} .cleared{color:#7FD69A;}
+  .dim{color:#8b8b93;} .accent{color:#8FA6FF;}
+
+  /* ---------- slack ---------- */
+  .slack{background:var(--surface);border:1px solid var(--line-soft);border-radius:24px;padding:7px;box-shadow:0 40px 90px -30px rgba(11,11,12,.22);}
+  .slack-core{background:var(--card);border:1px solid var(--line-soft);border-radius:18px;overflow:hidden;}
+  .slack-bar{display:flex;align-items:center;justify-content:space-between;padding:16px 24px;border-bottom:1px solid var(--line-soft);background:var(--surface);}
+  .slack-chan{font-weight:600;font-size:19px;} .slack-hash{color:var(--ink-faint);margin-right:2px;}
+  .slack-when{font-family:var(--mono);font-size:13px;color:var(--ink-faint);letter-spacing:.05em;}
+  .slack-msg{display:flex;gap:15px;padding:26px 28px;}
+  .avatar{width:46px;height:46px;border-radius:12px;flex:none;display:flex;align-items:center;justify-content:center;background:var(--accent);color:#fff;font-family:var(--display);font-weight:600;font-size:22px;}
+  .s-content{flex:1;min-width:0;}
+  .s-meta{display:flex;align-items:center;gap:10px;margin-bottom:13px;}
+  .s-name{font-weight:700;font-size:18px;} .s-app{font-family:var(--mono);font-size:10px;font-weight:500;letter-spacing:.1em;color:var(--ink-faint);background:rgba(11,11,12,.06);padding:3px 7px;border-radius:5px;}
+  .s-time{font-family:var(--mono);font-size:13px;color:var(--ink-faint);} .s-cleared{margin-left:auto;font-family:var(--mono);font-size:13px;color:var(--ok);}
+  .summary{font-family:var(--display);font-weight:500;font-variation-settings:'opsz' 50;font-size:24px;line-height:1.3;letter-spacing:-.01em;margin-bottom:20px;}
+  .flag{padding:15px 18px;border-radius:12px;background:var(--bg);border:1px solid var(--line-soft);border-left:3px solid var(--line);margin-bottom:11px;opacity:0;transform:translateY(10px);transition:all .45s cubic-bezier(.32,.72,0,1);}
+  .flag.in{opacity:1;transform:none;}
+  .flag--review{border-left-color:var(--alert);} .flag--monitor{border-left-color:var(--warn);}
+  .f-top{display:flex;align-items:center;gap:11px;margin-bottom:7px;}
+  .pill{font-family:var(--mono);font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.13em;padding:4px 10px;border-radius:999px;}
+  .pill--review{color:var(--alert);background:var(--alert-wash);} .pill--monitor{color:var(--warn);background:var(--warn-wash);}
+  .f-name{font-weight:600;font-size:17px;} .f-pos{font-family:var(--mono);font-size:12px;color:var(--ink-faint);margin-left:3px;}
+  .f-note{color:var(--ink-dim);font-size:15px;line-height:1.5;}
+  .foot{margin-top:16px;padding-top:14px;border-top:1px solid var(--line-soft);color:var(--ink-faint);font-size:15px;}
+
+  /* ---------- brand strip ---------- */
+  #brand{position:absolute;left:80px;bottom:44px;display:flex;align-items:center;gap:16px;opacity:0;transition:opacity .6s ease;}
+  #brand.in{opacity:1;}
+  .b-name{font-family:var(--display);font-weight:600;font-size:22px;letter-spacing:-.01em;}
+  .b-name span{font-family:var(--mono);font-size:12px;font-weight:500;letter-spacing:.12em;color:var(--ink-faint);margin-left:10px;}
+  #brand .b-url{margin-left:auto;font-family:var(--mono);font-size:15px;color:var(--accent);}
+  #tag{position:absolute;right:80px;bottom:44px;font-family:var(--mono);font-size:14px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);opacity:0;transition:opacity .6s ease;}
+  #tag.in{opacity:1;}
+
+  /* ---------- burned-in captions ---------- */
+  #cap{
+    position:absolute;top:52px;left:50%;transform:translateX(-50%) translateY(10px);
+    max-width:1400px;text-align:center;
+    font-family:var(--display);font-weight:560;font-variation-settings:'opsz' 90,'SOFT' 0,'WONK' 0;
+    font-size:44px;line-height:1.15;letter-spacing:-.015em;color:var(--ink);
+    opacity:0;transition:opacity .4s ease,transform .4s cubic-bezier(.32,.72,0,1);
+    white-space:nowrap;
+  }
+  #cap.in{opacity:1;transform:translateX(-50%) translateY(0);}
+  #cap .u{color:var(--accent);}
+</style>
+</head>
+<body>
+<div id="stage">
+  <!-- LEFT: terminal -->
+  <div class="panel" id="p-term">
+    <div class="cap">It runs. Watch.</div>
+    <div class="term">
+      <div class="term-bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="term-title">readiness — bash</span></div>
+      <div class="term-body">
+        <div><span class="prompt">➜</span> <span class="path">~/readiness</span> <span class="cmd" id="typed"></span><span class="cursor" id="cur"></span></div>
+        <div class="out" id="o1">
+<span class="dim">*Readiness — Tuesday, July 7*</span>
+9 athletes tested this morning. 3 flagged for a look, 6 within normal range.
+</div>
+        <div class="out" id="o2"><span class="review">[REVIEW]  D. Silva (RHP)</span>   CMJ down 12.2% vs 28-day baseline (z -2.1)</div>
+        <div class="out" id="o3"><span class="monitor">[MONITOR] R. Bennett (C)</span>   4 straight declining sessions (z -1.5)</div>
+        <div class="out" id="o4"><span class="monitor">[MONITOR] A. Rivera (OF)</span>   trend one direction (z -1.4)</div>
+        <div class="out" id="o5"><span class="cleared">Cleared (6/9):</span> Nakamura, Boateng, Petrov, Cruz, Alvarez, Okafor</div>
+        <div class="out" id="o6"><span class="accent">[narration: claude-sonnet-5 · anonymized in · every number verified against the engine]</span></div>
+        <div class="out" id="o7"><span class="cleared">[posted to Slack: HTTP 200]</span> <span class="cursor"></span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: slack -->
+  <div class="panel" id="p-slack">
+    <div class="cap">…and it lands here.</div>
+    <div class="slack">
+      <div class="slack-core">
+        <div class="slack-bar"><span class="slack-chan"><span class="slack-hash">#</span>performance-staff</span><span class="slack-when">Today, 6:12 AM</span></div>
+        <div class="slack-msg">
+          <div class="avatar">R</div>
+          <div class="s-content">
+            <div class="s-meta"><span class="s-name">Readiness</span><span class="s-app">APP</span><span class="s-time">6:12 AM</span><span class="s-cleared">6/9 cleared</span></div>
+            <p class="summary">Nine athletes tested this morning. Neuromuscular output is down across two arms after last night&rsquo;s outing; the rest of the board is within normal range.</p>
+            <div class="flag flag--review" id="f1">
+              <div class="f-top"><span class="pill pill--review">Review</span><span class="f-name">D. Silva <span class="f-pos">RHP</span></span></div>
+              <p class="f-note">CMJ down 12.2% vs his 28-day baseline (z &minus;2.1), RSI-mod down with it. Workload context: ACWR 1.52 after last night&rsquo;s start. Worth a conversation before he throws again.</p>
+            </div>
+            <div class="flag flag--monitor" id="f2">
+              <div class="f-top"><span class="pill pill--monitor">Monitor</span><span class="f-name">R. Bennett <span class="f-pos">C</span></span></div>
+              <p class="f-note">Two-game catching block landing on his legs. Jump output dipped to z &minus;1.5. Expected given the position load. Recheck after his day down.</p>
+            </div>
+            <div class="flag flag--monitor" id="f3">
+              <div class="f-top"><span class="pill pill--monitor">Monitor</span><span class="f-name">A. Rivera <span class="f-pos">OF</span></span></div>
+              <p class="f-note">Third straight session of declining jump output (z &minus;1.4). Not past threshold, but the trend is one direction. Eyes on him this week.</p>
+            </div>
+            <p class="foot">The remaining 6 are within their normal range.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="brand"><span class="b-name">Mauro Castillo<span>MD · MS · CSCS</span></span></div>
+  <div id="tag">The AI never writes a number</div>
+  <div id="cap"></div>
+</div>
+
+<script>
+  // Deterministic, frame-driven timeline (no Date.now) so the renderer can
+  // seek by calling window.seek(ms). Also self-plays if opened in a browser.
+  const CMD = './run.sh --post';
+  const T = [
+    // [ms, fn]
+    [200,  () => document.getElementById('p-term').classList.add('in')],
+    [700,  () => typeTo(CMD.length)],   // typing handled by seek math below
+  ];
+
+  function typeChars(ms){
+    // characters appear at 45ms each starting at 700ms
+    const start = 700, per = 45;
+    const n = Math.max(0, Math.min(CMD.length, Math.floor((ms - start)/per)));
+    document.getElementById('typed').textContent = CMD.slice(0, n);
+    return n === CMD.length;
+  }
+
+  const OUT = [
+    ['o1', 1650], ['o2', 2050], ['o3', 2300], ['o4', 2550],
+    ['o5', 2850], ['o6', 3250], ['o7', 3700],
+  ];
+  const FLAGS = [['f1', 5200], ['f2', 5550], ['f3', 5850]];
+
+  // burned-in captions: [start, end, html]
+  const CAPTIONS = [
+    [300,  1900, 'Force-plate data in. One command.'],
+    [2000, 4200, 'Code does the math. The AI only does the words.'],
+    [4400, 6700, 'The brief lands in Slack before the athletes walk in.'],
+    [6900, 99999, 'Synthetic squad. Working system. <span class="u">maurocastillomd.com/readiness</span>'],
+  ];
+  let capHTML = '';
+  function caption(ms){
+    const el = document.getElementById('cap');
+    const active = CAPTIONS.find(([s,e]) => ms >= s && ms < e);
+    if (active){
+      if (capHTML !== active[2]){ capHTML = active[2]; el.innerHTML = capHTML; }
+      el.classList.add('in');
+    } else {
+      el.classList.remove('in');
+    }
+  }
+
+  window.seek = function(ms){
+    caption(ms);
+    document.getElementById('p-term').classList.toggle('in', ms >= 200);
+    typeChars(ms);
+    document.getElementById('cur').style.display = ms >= 1600 ? 'none' : '';
+    OUT.forEach(([id,t]) => document.getElementById(id).classList.toggle('show', ms >= t));
+    // slack panel enters after the terminal finishes
+    document.getElementById('p-slack').classList.toggle('in', ms >= 4400);
+    FLAGS.forEach(([id,t]) => document.getElementById(id).classList.toggle('in', ms >= t));
+    document.getElementById('brand').classList.toggle('in', ms >= 4000);
+    document.getElementById('tag').classList.toggle('in', ms >= 6300);
+  };
+
+  window.DURATION = 8000;
+  window.seek(0);
+
+  // self-play when viewed directly
+  if (!window.__RENDER__){
+    let t0 = null;
+    function loop(ts){ if(t0===null)t0=ts; const e=ts-t0; window.seek(Math.min(e, window.DURATION)); if(e<window.DURATION) requestAnimationFrame(loop); }
+    requestAnimationFrame(loop);
+  }
+</script>
+</body>
+</html>
